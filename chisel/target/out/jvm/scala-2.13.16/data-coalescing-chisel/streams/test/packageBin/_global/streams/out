@@ -1,6 +1,0 @@
-[debug] Packaging /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/target/out/jvm/scala-2.13.16/data-coalescing-chisel/data-coalescing-chisel_2.13-0.1.0-tests.jar ...
-[debug] Input file mappings:
-[debug] 	dco/DataCoalescingSpec.class
-[debug] 	  /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/target/out/jvm/scala-2.13.16/data-coalescing-chisel/test-classes/dco/DataCoalescingSpec.class
-[debug] Done packaging.
-[debug] wrote ${OUT}/jvm/scala-2.13.16/data-coalescing-chisel/data-coalescing-chisel_2.13-0.1.0-tests.jar
