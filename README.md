@@ -97,21 +97,6 @@ buffer，并执行以下策略：
 | `0xc` | `SRLI rd, rs1, shamt` | 逐 Lane 逻辑右移 |
 | `0xf` | `HALT` | 结束程序 |
 
-## 与 NVIDIA GPU 的关系
-
-NVIDIA CUDA Best Practices Guide 说明，对 compute capability 6.0 及以上设备，warp 的
-global-memory 访问会合并为覆盖全部地址所需的若干 32-byte transaction。因此本项目采用
-32-byte segment，并保留自然对齐的 32-bit 单核数据宽度。
-
-真实 NVIDIA GPU 通常在同一 warp 的一次访存指令范围内聚合多个 lane。本工程按照任务
-要求改成四个独立简化核，所以不是 NVIDIA SM/warp 的逐周期复制，而是用相同的
-segment grouping 原理研究共享访存合并。
-
-参考资料：
-
-- [NVIDIA CUDA Best Practices Guide: Coalesced Access to Global Memory](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#coalesced-access-to-global-memory)
-- [NVIDIA CUDA C++ Programming Guide: Device Memory Accesses](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses)
-
 ## 目录结构
 
 ```text
