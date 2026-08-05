@@ -10,7 +10,7 @@ GPU_TB        := tb/gpu_benchmark.cpp
 GPU_STAGE_DIR := /tmp/simple_gpu_build_$(shell id -u)
 GPU_OBJ_DIR   := $(GPU_STAGE_DIR)/obj_dir
 
-.PHONY: all lint test benchmark gpu-lint gpu-test gpu-benchmark clean
+.PHONY: all lint test benchmark gpu-lint gpu-test gpu-benchmark chisel-test chisel-generate chisel-benchmark clean
 
 all: test
 
@@ -39,6 +39,18 @@ $(GPU_OBJ_DIR)/V$(GPU_TOP): $(GPU_RTL) $(GPU_TB) Makefile
 
 gpu-test gpu-benchmark: $(GPU_OBJ_DIR)/V$(GPU_TOP)
 	$(GPU_OBJ_DIR)/V$(GPU_TOP)
+
+chisel-test:
+	cd chisel && sbt --batch test
+
+chisel-generate:
+	mkdir -p build/chisel-generated
+	cd chisel && sbt --batch "runMain dco.Generate ../build/chisel-generated"
+
+chisel-benchmark: chisel-generate
+	cp tb/chisel_benchmark.cpp /tmp/chisel_benchmark.cpp
+	env CCACHE_DISABLE=1 verilator --cc build/chisel-generated/DataCoalescingSystem.sv --exe /tmp/chisel_benchmark.cpp --build --top-module DataCoalescingSystem --Mdir /tmp/chisel_dco_obj -CFLAGS "-O2 -std=c++17"
+	/tmp/chisel_dco_obj/VDataCoalescingSystem
 
 clean:
 	rm -rf build

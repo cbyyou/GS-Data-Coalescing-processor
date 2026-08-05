@@ -1,0 +1,57 @@
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:51:8: reflective access of structural type member value coreReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn] This can be achieved by adding the import clause 'import scala.language.reflectiveCalls'
+[warn] or by setting the compiler option -language:reflectiveCalls.
+[warn] See the Scaladoc for value scala.language.reflectiveCalls for a discussion
+[warn] why the feature should be explicitly enabled.
+[warn]     io.coreReq(i).ready := !bufValid(i)
+[warn]        ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:52:8: reflective access of structural type member value coreResp should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]     io.coreResp(i).valid := respValid(i)
+[warn]        ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:53:8: reflective access of structural type member value coreResp should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]     io.coreResp(i).bits.data := respData(i)
+[warn]        ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:83:6: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]   io.memReq.valid := state === sIssue
+[warn]      ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:84:6: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]   io.memReq.bits.write := activeWrite
+[warn]      ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:85:6: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]   io.memReq.bits.lineAddr := activeLine
+[warn]      ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:86:6: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]   io.memReq.bits.byteen := activeByteen
+[warn]      ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:87:27: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]   for (i <- 0 until 8) io.memReq.bits.wdata(i) := activeWdata(i)
+[warn]                           ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:98:16: reflective access of structural type member value coreReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]       when (io.coreReq(i).fire) {
+[warn]                ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:100:25: reflective access of structural type member value coreReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]         bufReq(i) := io.coreReq(i).bits
+[warn]                         ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:117:18: reflective access of structural type member value memReq should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]         when (io.memReq.fire) { state := sWait }
+[warn]                  ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:120:18: reflective access of structural type member value memResp should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]         when (io.memResp.valid) {
+[warn]                  ^
+[warn] /home/caoboyang/桌面/vliwDSP/Data Coalescing Core/chisel/src/main/scala/dco/DataCoalescer.scala:126:35: reflective access of structural type member value memResp should be enabled
+[warn] by making the implicit value scala.language.reflectiveCalls visible.
+[warn]                 respData(i) := io.memResp.bits.rdata(activeAddr(i)(4, 2))
+[warn]                                   ^
+[warn] 13 warnings found

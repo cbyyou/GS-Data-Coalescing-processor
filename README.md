@@ -110,6 +110,9 @@ buffer，并执行以下策略：
 ├── tb/
 │   ├── benchmark.cpp               # 独立访存流测试
 │   └── gpu_benchmark.cpp           # SIMT 向量加法测试
+├── chisel/
+│   ├── src/main/scala/dco/          # 与上述 RTL 对应的 Chisel 实现
+│   └── src/test/scala/dco/          # ChiselTest 合并/响应路由测试
 ├── build/
 │   ├── benchmark.csv               # 独立访存流结果
 │   └── gpu_benchmark.csv           # 简化 GPU 结果
@@ -125,7 +128,14 @@ make lint
 make benchmark
 make gpu-lint
 make gpu-benchmark
+make chisel-test
+make chisel-generate
 ```
+
+`chisel-test` 使用 ChiselTest 验证四路连续 load 的 32-byte 合并、load 返回路由和
+store byte-enable 合并；`chisel-generate` 将 `DataCoalescingSystem` 与
+`SimpleGpuSystem` 生成到 `build/chisel-generated/`。Chisel 版本与当前 SystemVerilog
+模型保持同一套接口语义，生成结果可继续用 Verilator 做 lint 或仿真。
 
 工程路径含空格，因此 Makefile 将 Verilator 中间文件放到
 `/tmp/data_coalescer_build_<uid>`，CSV 仍写入工程内的 `build/benchmark.csv`。
