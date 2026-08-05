@@ -2,3 +2,5 @@ chisel/target/
 chisel/.bsp/
 chisel/project/target/
 chisel/test_run_dir/
+
+build/
