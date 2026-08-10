@@ -66,4 +66,33 @@ class DataCoalescingSpec extends AnyFlatSpec with ChiselScalatestTester {
       for (i <- 0 until 4) dut.io.memReq.bits.wdata(i).expect((0xfeed0000L + i).U)
     }
   }
+
+  it should "give the lowest lane priority for same-word store conflicts" in {
+    test(new DataCoalescer) { dut =>
+      clearReq(dut)
+      dut.io.coreReq(0).valid.poke(true.B)
+      dut.io.coreReq(0).bits.addr.poke("h3000".U)
+      dut.io.coreReq(0).bits.write.poke(true.B)
+      dut.io.coreReq(0).bits.wdata.poke("h11111111".U)
+      dut.io.coreReq(0).bits.be.poke("h3".U)
+      dut.io.coreReq(1).valid.poke(true.B)
+      dut.io.coreReq(1).bits.addr.poke("h3000".U)
+      dut.io.coreReq(1).bits.write.poke(true.B)
+      dut.io.coreReq(1).bits.wdata.poke("h22222222".U)
+      dut.io.coreReq(1).bits.be.poke("hc".U)
+      dut.io.coreReq(2).valid.poke(true.B)
+      dut.io.coreReq(2).bits.addr.poke("h3004".U)
+      dut.io.coreReq(2).bits.write.poke(true.B)
+      dut.io.coreReq(2).bits.wdata.poke("h33333333".U)
+
+      dut.clock.step()
+      for (i <- 0 until 4) dut.io.coreReq(i).valid.poke(false.B)
+      dut.clock.step()
+      dut.io.memReq.valid.expect(true.B)
+      dut.io.memReq.bits.write.expect(true.B)
+      dut.io.memReq.bits.byteen.expect("h000000f3".U)
+      dut.io.memReq.bits.wdata(0).expect("h11111111".U)
+      dut.io.memReq.bits.wdata(1).expect("h33333333".U)
+    }
+  }
 }

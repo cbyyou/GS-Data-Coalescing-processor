@@ -109,23 +109,29 @@ buffer，并执行以下策略：
 │   └── simple_gpu_system.sv        # 简化 GPU 顶层
 ├── tb/
 │   ├── benchmark.cpp               # 独立访存流测试
-│   └── gpu_benchmark.cpp           # SIMT 向量加法测试
+│   ├── gpu_benchmark.cpp           # SIMT 向量加法测试
+│   ├── chisel_benchmark.cpp        # Chisel 生成 RTL Benchmark
+│   ├── coalescer_diff.cpp          # Chisel/Golden 逐周期差分测试
+│   ├── golden_coalescer.cpp        # Coalescer C++ 参考模型
+│   └── golden_coalescer.hpp        # 参考模型接口
 ├── chisel/
 │   ├── src/main/scala/dco/          # 与上述 RTL 对应的 Chisel 实现
 │   └── src/test/scala/dco/          # ChiselTest 合并/响应路由测试
 ├── build/
 │   ├── benchmark.csv               # 独立访存流结果
+│   ├── parameter_sweep.csv         # 四核 stride/错峰参数扫描结果
 │   └── gpu_benchmark.csv           # 简化 GPU 结果
 └── Makefile
 ```
 
 ## 运行
 
-依赖 GNU Make、C++17 编译器和 Verilator：
+依赖 GNU Make、支持 C++17 的编译器、Verilator、JDK 17 和 sbt 1.10.7：
 
 ```bash
 make lint
 make benchmark
+make parameter-sweep
 make gpu-lint
 make gpu-benchmark
 make chisel-test
@@ -133,9 +139,32 @@ make chisel-generate
 ```
 
 `chisel-test` 使用 ChiselTest 验证四路连续 load 的 32-byte 合并、load 返回路由和
-store byte-enable 合并；`chisel-generate` 将 `DataCoalescingSystem` 与
-`SimpleGpuSystem` 生成到 `build/chisel-generated/`。Chisel 版本与当前 SystemVerilog
-模型保持同一套接口语义，生成结果可继续用 Verilator 做 lint 或仿真。
+store byte-enable 合并以及同字 store 冲突。`chisel-generate` 将 `DataCoalescer`、
+`DataCoalescingSystem` 与 `SimpleGpuSystem` 生成到 `build/chisel-generated/`。Chisel
+版本与当前 SystemVerilog 模型保持同一套接口语义，生成结果可继续用 Verilator 做 lint
+或仿真。
+
+### 差分验证
+
+```bash
+make chisel-diff
+```
+
+该目标将 Chisel 生成的独立 `DataCoalescer` 与 C++ `GoldenCoalescer` 逐周期比较。每组
+测试包含 4 个独立请求流，随机化请求到达间隔、memory request ready（每周期
+有 75% 概率为 ready）和 memory response 延迟（请求接受后 2--5 个仿真周期），并逐事务
+检查 line address、读写类型、
+32-byte byte-enable、写数据及每个 Lane 的返回 valid/data。当前固定种子共运行 10,000
+组随机用例，另外包含同字 store 冲突的定向用例。
+
+基线语义限定为 4-byte 对齐访问、每 Lane 一个请求缓冲、同 segment 且同 load/store 类型
+才合并、一次只允许一个 outstanding memory transaction。多个 Lane 写入同一 32-bit
+word 时由最低编号 Lane 胜出；这是后续改变仲裁或合并策略时需要保持或显式修改的参考
+行为。
+
+`parameter-sweep` 在不改变硬件基线的前提下扫描四核请求行为：`stride` 取 4/8/16/32/64/128
+字节，四个核的启动错峰步长取 0/1/2/3/4/6/8 个周期，结果写入
+`build/parameter_sweep.csv`。该扫描用于区分地址分布和请求到达时序对合并率的影响。
 
 工程路径含空格，因此 Makefile 将 Verilator 中间文件放到
 `/tmp/data_coalescer_build_<uid>`，CSV 仍写入工程内的 `build/benchmark.csv`。

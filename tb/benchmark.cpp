@@ -201,6 +201,19 @@ static void functional_tests() {
     require(h.dut.core_last_rdata2 == 0xa5000002, "core 2 store merge");
     require(h.dut.core_last_rdata3 == 0xa5000003, "core 3 store merge");
 
+    auto conflicting_stores = uniform_workload(0x980, 32, {0, 0, 4, 8}, 1);
+    conflicting_stores.write_mask = 0xf;
+    conflicting_stores.wdata_base = {0xb1000000, 0xb2000000, 0xb3000000, 0xb4000000};
+    const auto conflict_store_result = h.run("functional_store_conflict", conflicting_stores);
+    require(conflict_store_result.transactions == 1,
+            "same-segment store conflict must remain one transaction");
+    auto conflicting_reads = uniform_workload(0x980, 32, {0, 0, 4, 8}, 1);
+    const auto conflict_read_result = h.run("functional_store_conflict_verify", conflicting_reads);
+    require(conflict_read_result.transactions == 1,
+            "same-segment conflict readback must remain one transaction");
+    require(h.dut.core_last_rdata0 == 0xb1000000 && h.dut.core_last_rdata1 == 0xb1000000,
+            "lowest lane must win same-word store conflict");
+
     auto staggered = uniform_workload(0xa00, 32, {0, 4, 8, 12}, 1);
     staggered.start_delay = {0, 1, 2, 3};
     const auto staggered_result = h.run("functional_staggered", staggered);
@@ -208,9 +221,47 @@ static void functional_tests() {
             "independent arrival must remain functional");
 }
 
+static void parameter_sweep() {
+    const std::array<uint32_t, 6> strides = {4, 8, 16, 32, 64, 128};
+    const std::array<uint32_t, 7> skew_steps = {0, 1, 2, 3, 4, 6, 8};
+    std::ofstream csv("build/parameter_sweep.csv");
+    csv << "stride,start_skew,core_requests,memory_transactions,requests_per_transaction,"
+           "transaction_reduction_percent,cycles,requests_per_cycle\n";
+    std::printf("\nparameter sweep (four independent cores, 100 requests/core)\n");
+    std::printf("%-8s %-10s %10s %10s %10s %10s %10s\n",
+                "stride", "start_skew", "mem_txn", "req/txn", "reduct%", "cycles",
+                "req/cycle");
+
+    for (const uint32_t stride : strides) {
+        for (const uint32_t skew : skew_steps) {
+            Harness h;
+            auto workload = uniform_workload(0x50000 + stride * 0x100,
+                                              stride, {0, 4, 8, 12}, 100);
+            workload.start_delay = {0, skew, 2 * skew, 3 * skew};
+            const auto result = h.run("parameter_sweep", workload);
+            const double rpt = static_cast<double>(result.requests) / result.transactions;
+            const double reduction = 100.0 *
+                (1.0 - static_cast<double>(result.transactions) / result.requests);
+            const double rpc = static_cast<double>(result.requests) / result.cycles;
+            std::printf("%-8u %-10u %10llu %10.3f %10.2f %10llu %10.3f\n",
+                        stride, skew,
+                        static_cast<unsigned long long>(result.transactions), rpt, reduction,
+                        static_cast<unsigned long long>(result.cycles), rpc);
+            csv << stride << ',' << skew << ',' << result.requests << ',' << result.transactions
+                << ',' << rpt << ',' << reduction << ',' << result.cycles << ',' << rpc << '\n';
+        }
+    }
+    std::printf("parameter sweep CSV: build/parameter_sweep.csv\n");
+}
+
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     functional_tests();
+
+    if (argc > 1 && std::string(argv[1]) == "--sweep") {
+        parameter_sweep();
+        return 0;
+    }
 
     std::vector<Result> results;
     {

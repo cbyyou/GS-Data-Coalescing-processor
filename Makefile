@@ -9,8 +9,12 @@ GPU_RTL       := rtl/data_coalescer.sv rtl/simple_simt_core.sv rtl/simple_gpu_sy
 GPU_TB        := tb/gpu_benchmark.cpp
 GPU_STAGE_DIR := /tmp/simple_gpu_build_$(shell id -u)
 GPU_OBJ_DIR   := $(GPU_STAGE_DIR)/obj_dir
+CHISEL_STAGE_DIR := /tmp/chisel_dco_build_$(shell id -u)
+CHISEL_OBJ_DIR   := $(CHISEL_STAGE_DIR)/obj_dir
+DIFF_STAGE_DIR   := /tmp/chisel_diff_build_$(shell id -u)
+DIFF_OBJ_DIR     := $(DIFF_STAGE_DIR)/obj_dir
 
-.PHONY: all lint test benchmark gpu-lint gpu-test gpu-benchmark chisel-test chisel-generate chisel-benchmark clean
+.PHONY: all lint test benchmark parameter-sweep gpu-lint gpu-test gpu-benchmark chisel-test chisel-generate chisel-benchmark chisel-diff clean
 
 all: test
 
@@ -26,6 +30,9 @@ $(OBJ_DIR)/V$(TOP): $(RTL) $(TB) Makefile
 
 test benchmark: $(OBJ_DIR)/V$(TOP)
 	$(OBJ_DIR)/V$(TOP)
+
+parameter-sweep: $(OBJ_DIR)/V$(TOP)
+	$(OBJ_DIR)/V$(TOP) --sweep
 
 gpu-lint:
 	$(VERILATOR) --lint-only --Wall -Wno-fatal --top-module $(GPU_TOP) $(GPU_RTL)
@@ -48,11 +55,29 @@ chisel-generate:
 	cd chisel && sbt --batch "runMain dco.Generate ../build/chisel-generated"
 
 chisel-benchmark: chisel-generate
-	cp tb/chisel_benchmark.cpp /tmp/chisel_benchmark.cpp
-	env CCACHE_DISABLE=1 verilator --cc build/chisel-generated/DataCoalescingSystem.sv --exe /tmp/chisel_benchmark.cpp --build --top-module DataCoalescingSystem --Mdir /tmp/chisel_dco_obj -CFLAGS "-O2 -std=c++17"
-	/tmp/chisel_dco_obj/VDataCoalescingSystem
+	mkdir -p $(CHISEL_STAGE_DIR)
+	cp tb/chisel_benchmark.cpp $(CHISEL_STAGE_DIR)/
+	env CCACHE_DISABLE=1 $(VERILATOR) --cc build/chisel-generated/DataCoalescingSystem.sv \
+		--exe $(CHISEL_STAGE_DIR)/chisel_benchmark.cpp --build \
+		--top-module DataCoalescingSystem --Mdir $(CHISEL_OBJ_DIR) \
+		-CFLAGS "-O2 -std=c++17"
+	$(CHISEL_OBJ_DIR)/VDataCoalescingSystem
+
+chisel-diff: chisel-generate
+	mkdir -p $(DIFF_STAGE_DIR)
+	cp tb/golden_coalescer.hpp $(DIFF_STAGE_DIR)/
+	cp tb/golden_coalescer.cpp $(DIFF_STAGE_DIR)/
+	cp tb/coalescer_diff.cpp $(DIFF_STAGE_DIR)/
+	env CCACHE_DISABLE=1 $(VERILATOR) --cc build/chisel-generated/DataCoalescer.sv \
+		--exe $(DIFF_STAGE_DIR)/coalescer_diff.cpp \
+		      $(DIFF_STAGE_DIR)/golden_coalescer.cpp --build \
+		--top-module DataCoalescer --Mdir $(DIFF_OBJ_DIR) \
+		-CFLAGS "-O2 -std=c++17"
+	$(DIFF_OBJ_DIR)/VDataCoalescer
 
 clean:
 	rm -rf build
 	rm -rf $(STAGE_DIR)
 	rm -rf $(GPU_STAGE_DIR)
+	rm -rf $(CHISEL_STAGE_DIR)
+	rm -rf $(DIFF_STAGE_DIR)

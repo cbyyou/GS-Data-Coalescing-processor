@@ -68,17 +68,22 @@ class DataCoalescer extends Module {
   }).asUInt
   val selectedWdata = Wire(Vec(8, UInt(32.W)))
   val selectedByteen = Wire(UInt(32.W))
-  selectedWdata.foreach(_ := 0.U)
-  val selectedByteenParts = Wire(Vec(4, UInt(32.W)))
-  selectedByteenParts.foreach(_ := 0.U)
-  for (i <- 0 until 4) {
-    val word = bufReq(i).addr(4, 2)
-    when (selectedMask(i) && bufReq(i).write) {
-      selectedWdata(word) := bufReq(i).wdata
-      selectedByteenParts(i) := bufReq(i).be << (word << 2)
+  val selectedByteenWords = Wire(Vec(8, UInt(4.W)))
+  for (wordIndex <- 0 until 8) {
+    val wordCandidates = (0 until 4).map { i =>
+      val matchesWord = bufReq(i).addr(4, 2) === wordIndex.U
+      (selectedMask(i) && bufReq(i).write && matchesWord) -> bufReq(i).wdata
     }
+    val byteCandidates = (0 until 4).map { i =>
+      val matchesWord = bufReq(i).addr(4, 2) === wordIndex.U
+      (selectedMask(i) && bufReq(i).write && matchesWord) -> bufReq(i).be
+    }
+    // MuxCase preserves the candidate order, so the lowest lane wins a
+    // same-word store conflict. The byte enable follows the winning lane.
+    selectedWdata(wordIndex) := MuxCase(0.U, wordCandidates)
+    selectedByteenWords(wordIndex) := MuxCase(0.U, byteCandidates)
   }
-  selectedByteen := selectedByteenParts.reduce(_ | _)
+  selectedByteen := selectedByteenWords.asUInt
 
   io.memReq.valid := state === sIssue
   io.memReq.bits.write := activeWrite

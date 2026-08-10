@@ -68,6 +68,7 @@ module data_coalescer (
     logic        selected_write;
     logic [31:0] selected_wdata [0:7];
     logic [31:0] selected_byteen;
+    logic [7:0]  selected_word_seen;
 
     logic [3:0]  active_mask_q;
     logic [31:0] active_addr_q [0:3];
@@ -113,6 +114,7 @@ module data_coalescer (
         selected_line = 32'b0;
         selected_write = 1'b0;
         selected_byteen = 32'b0;
+        selected_word_seen = 8'b0;
         word_offset = 0;
         for (i = 0; i < 8; i = i + 1) selected_wdata[i] = 32'b0;
 
@@ -131,8 +133,13 @@ module data_coalescer (
                 selected_mask[i] = 1'b1;
                 if (buf_write_q[i]) begin
                     word_offset = (buf_addr_q[i] & 32'h1f) >> 2;
-                    selected_wdata[word_offset] = buf_wdata_q[i];
-                    selected_byteen[word_offset*4 +: 4] = buf_be_q[i];
+                    // Iterate from lane 0 to lane 3 and keep the first store
+                    // targeting a word. This matches the Chisel/golden rule.
+                    if (!selected_word_seen[word_offset]) begin
+                        selected_wdata[word_offset] = buf_wdata_q[i];
+                        selected_byteen[word_offset*4 +: 4] = buf_be_q[i];
+                        selected_word_seen[word_offset] = 1'b1;
+                    end
                 end
             end
         end
